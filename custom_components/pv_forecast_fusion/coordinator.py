@@ -13,8 +13,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN, SOURCE_SLOTS
 from .fusion import ForecastSource, fuse_sources
+from .source_entity_groups import aggregate_curve_values, aggregate_numeric_values, expand_entity_group
 from .source_parser import extract_curve_values
-from .source_presets import derive_remaining_from_attributes, normalize_source_entities
+from .source_presets import derive_remaining_from_attributes
 
 
 @dataclass(slots=True)
@@ -26,7 +27,11 @@ class SourceSnapshot:
     today_entity: str | None
     tomorrow_entity: str | None
     remaining_entity: str | None
+    today_entities: list[str]
+    tomorrow_entities: list[str]
+    remaining_entities: list[str]
     remaining_method: str | None
+    remaining_methods: list[str]
     today_kwh: float | None
     tomorrow_kwh: float | None
     remaining_today_kwh: float | None
@@ -72,44 +77,76 @@ def _build_source_from_entry(
 ) -> tuple[ForecastSource | None, SourceSnapshot | None]:
     name = _entry_value(entry, f"source_{slot}_name") or f"source_{slot}"
     configured_source_type = _entry_value(entry, f"source_{slot}_type") or "auto"
-    today_entity = _entry_value(entry, f"source_{slot}_today_entity")
-    explicit_tomorrow_entity = _entry_value(entry, f"source_{slot}_tomorrow_entity")
-    explicit_remaining_entity = _entry_value(entry, f"source_{slot}_remaining_entity")
+    today_entities_value = _entry_value(entry, f"source_{slot}_today_entity")
+    explicit_tomorrow_entities_value = _entry_value(entry, f"source_{slot}_tomorrow_entity")
+    explicit_remaining_entities_value = _entry_value(entry, f"source_{slot}_remaining_entity")
     weight = _float_or_default(_entry_value(entry, f"source_{slot}_weight"), 1.0)
     bias_factor = _float_or_default(_entry_value(entry, f"source_{slot}_bias_factor"), 1.0)
     confidence = _float_or_default(_entry_value(entry, f"source_{slot}_confidence"), 1.0)
 
-    if not today_entity:
+    if not today_entities_value:
         return None, None
 
-    initial_today_state = hass.states.get(today_entity)
-    resolved = normalize_source_entities(
-        today_entity=today_entity,
-        tomorrow_entity=explicit_tomorrow_entity,
-        remaining_entity=explicit_remaining_entity,
-        attributes=initial_today_state.attributes if initial_today_state else None,
+    raw_today_entities = [item.strip() for item in str(today_entities_value).split(",") if item.strip()]
+    attributes_by_today_entity: dict[str, dict[str, Any] | None] = {}
+    for entity_id in raw_today_entities:
+        state = hass.states.get(entity_id)
+        attributes_by_today_entity[entity_id] = state.attributes if state else None
+
+    resolved_group = expand_entity_group(
+        today_entities=today_entities_value,
+        tomorrow_entities=explicit_tomorrow_entities_value,
+        remaining_entities=explicit_remaining_entities_value,
+        attributes_by_today_entity=attributes_by_today_entity,
         configured_source_type=configured_source_type,
     )
+    if not resolved_group.items:
+        return None, None
 
-    today_state = hass.states.get(resolved.today_entity)
-    tomorrow_state = hass.states.get(resolved.tomorrow_entity) if resolved.tomorrow_entity else None
-    remaining_state = hass.states.get(resolved.remaining_entity) if resolved.remaining_entity else None
+    resolved_today_entities = [item.today_entity for item in resolved_group.items if item.today_entity]
+    resolved_tomorrow_entities = [item.tomorrow_entity for item in resolved_group.items if item.tomorrow_entity]
+    resolved_remaining_entities = [item.remaining_entity for item in resolved_group.items if item.remaining_entity]
 
-    today_kwh = _state_to_float(today_state.state if today_state else None)
-    tomorrow_kwh = _state_to_float(tomorrow_state.state if tomorrow_state else None)
-    remaining_today_kwh = _state_to_float(remaining_state.state if remaining_state else None)
-    remaining_method = "direct_sensor" if remaining_today_kwh is not None and resolved.remaining_entity else None
+    source_types: list[str] = []
+    resolution_bases: list[str] = []
+    today_values: list[float | None] = []
+    tomorrow_values: list[float | None] = []
+    remaining_values: list[float | None] = []
+    remaining_methods: list[str] = []
+    curves: list[list[float]] = []
 
-    if remaining_today_kwh is None and today_state is not None:
-        remaining_today_kwh = derive_remaining_from_attributes(
-            source_type=resolved.source_type,
-            attributes=today_state.attributes,
-            now=datetime.now(timezone.utc),
-        )
-        if remaining_today_kwh is not None:
-            remaining_method = "derived_from_today_attributes"
+    now = datetime.now(timezone.utc)
+    for resolved in resolved_group.items:
+        source_types.append(resolved.source_type)
+        resolution_bases.append(resolved.resolution_basis)
 
-    curve_values = extract_curve_values(today_state.attributes if today_state else None)
+        today_state = hass.states.get(resolved.today_entity)
+        tomorrow_state = hass.states.get(resolved.tomorrow_entity) if resolved.tomorrow_entity else None
+        remaining_state = hass.states.get(resolved.remaining_entity) if resolved.remaining_entity else None
+
+        today_values.append(_state_to_float(today_state.state if today_state else None))
+        tomorrow_values.append(_state_to_float(tomorrow_state.state if tomorrow_state else None))
+
+        remaining_today_kwh = _state_to_float(remaining_state.state if remaining_state else None)
+        remaining_method = "direct_sensor" if remaining_today_kwh is not None and resolved.remaining_entity else None
+        if remaining_today_kwh is None and today_state is not None:
+            remaining_today_kwh = derive_remaining_from_attributes(
+                source_type=resolved.source_type,
+                attributes=today_state.attributes,
+                now=now,
+            )
+            if remaining_today_kwh is not None:
+                remaining_method = "derived_from_today_attributes"
+
+        remaining_values.append(remaining_today_kwh)
+        remaining_methods.append(remaining_method or "unavailable")
+        curves.append(extract_curve_values(today_state.attributes if today_state else None))
+
+    today_kwh = aggregate_numeric_values(today_values)
+    tomorrow_kwh = aggregate_numeric_values(tomorrow_values)
+    remaining_today_kwh = aggregate_numeric_values(remaining_values)
+    curve_values = aggregate_curve_values(curves)
+
     source = ForecastSource(
         name=name,
         today_kwh=today_kwh,
@@ -122,13 +159,19 @@ def _build_source_from_entry(
     )
     snapshot = SourceSnapshot(
         name=name,
-        configured_source_type=resolved.configured_source_type,
-        source_type=resolved.source_type,
-        resolution_basis=resolved.resolution_basis,
-        today_entity=resolved.today_entity,
-        tomorrow_entity=resolved.tomorrow_entity,
-        remaining_entity=resolved.remaining_entity,
-        remaining_method=remaining_method,
+        configured_source_type=resolved_group.items[0].configured_source_type,
+        source_type=_single_value_or_mixed(source_types),
+        resolution_basis=_single_value_or_mixed(resolution_bases),
+        today_entity=_single_entity_or_none(resolved_today_entities),
+        tomorrow_entity=_single_entity_or_none(resolved_tomorrow_entities),
+        remaining_entity=_single_entity_or_none(resolved_remaining_entities),
+        today_entities=resolved_today_entities,
+        tomorrow_entities=resolved_tomorrow_entities,
+        remaining_entities=resolved_remaining_entities,
+        remaining_method=_single_optional_value_or_mixed(
+            [method for method in remaining_methods if method != "unavailable"]
+        ),
+        remaining_methods=remaining_methods,
         today_kwh=source.today_kwh,
         tomorrow_kwh=source.tomorrow_kwh,
         remaining_today_kwh=source.remaining_today_kwh,
@@ -155,6 +198,27 @@ def _state_to_float(value: str | None) -> float | None:
     except (TypeError, ValueError):
         return None
 
+
+def _single_entity_or_none(values: list[str]) -> str | None:
+    if len(values) == 1:
+        return values[0]
+    return None
+
+
+def _single_value_or_mixed(values: list[str], mixed_value: str = "mixed") -> str:
+    unique_values = list(dict.fromkeys(values))
+    if len(unique_values) == 1:
+        return unique_values[0]
+    return mixed_value
+
+
+def _single_optional_value_or_mixed(values: list[str], mixed_value: str = "mixed") -> str | None:
+    if not values:
+        return None
+    unique_values = list(dict.fromkeys(values))
+    if len(unique_values) == 1:
+        return unique_values[0]
+    return mixed_value
 
 
 def _float_or_default(value: Any, default: float) -> float:

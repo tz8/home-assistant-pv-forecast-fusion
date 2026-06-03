@@ -42,7 +42,7 @@ from .const import (
     DOMAIN,
     SOURCE_TYPE_OPTIONS,
 )
-from .source_presets import normalize_source_entities
+from .source_entity_groups import expand_entity_group
 
 _FIELDS: tuple[tuple[str, str, str, str, str, str, str, str], ...] = (
     (
@@ -117,19 +117,28 @@ class PvForecastFusionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 def _normalize_user_input(hass, user_input: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(user_input)
     for _, type_key, today_key, tomorrow_key, remaining_key, *_ in _FIELDS:
-        today_entity = normalized.get(today_key)
-        if not today_entity:
+        today_entities = normalized.get(today_key)
+        if not today_entities:
             continue
-        today_state = hass.states.get(today_entity)
-        resolved = normalize_source_entities(
-            today_entity=today_entity,
-            tomorrow_entity=normalized.get(tomorrow_key),
-            remaining_entity=normalized.get(remaining_key),
-            attributes=today_state.attributes if today_state else None,
+
+        today_entity_ids = [item.strip() for item in str(today_entities).split(",") if item.strip()]
+        attributes_by_today_entity: dict[str, dict[str, Any] | None] = {}
+        for entity_id in today_entity_ids:
+            state = hass.states.get(entity_id)
+            attributes_by_today_entity[entity_id] = state.attributes if state else None
+
+        resolved_group = expand_entity_group(
+            today_entities=today_entities,
+            tomorrow_entities=normalized.get(tomorrow_key),
+            remaining_entities=normalized.get(remaining_key),
+            attributes_by_today_entity=attributes_by_today_entity,
             configured_source_type=normalized.get(type_key),
         )
-        normalized[type_key] = resolved.configured_source_type
-        normalized[today_key] = resolved.today_entity
-        normalized[tomorrow_key] = resolved.tomorrow_entity or ""
-        normalized[remaining_key] = resolved.remaining_entity or ""
+        if not resolved_group.items:
+            continue
+
+        normalized[type_key] = resolved_group.items[0].configured_source_type
+        normalized[today_key] = ", ".join(item.today_entity for item in resolved_group.items if item.today_entity)
+        normalized[tomorrow_key] = ", ".join(item.tomorrow_entity or "" for item in resolved_group.items).strip(" ,")
+        normalized[remaining_key] = ", ".join(item.remaining_entity or "" for item in resolved_group.items).strip(" ,")
     return normalized
