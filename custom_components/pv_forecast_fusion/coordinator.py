@@ -12,19 +12,20 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN, SOURCE_SLOTS
-from .fusion import ForecastSource, FusionResult, fuse_sources
+from .fusion import ForecastSource, fuse_sources
 from .source_parser import extract_curve_values
-from .source_presets import derive_remaining_from_attributes, normalize_source_entities
+from .source_presets import derive_remaining_from_attributes
+from .source_profile import resolve_related_entities
 
 
 @dataclass(slots=True)
 class SourceSnapshot:
     name: str
-    source_type: str
+    profile: str
+    resolution_basis: str
     today_entity: str | None
     tomorrow_entity: str | None
     remaining_entity: str | None
-    auto_mapped: bool
     remaining_method: str | None
     today_kwh: float | None
     tomorrow_kwh: float | None
@@ -71,8 +72,8 @@ def _build_source_from_entry(
 ) -> tuple[ForecastSource | None, SourceSnapshot | None]:
     name = _entry_value(entry, f"source_{slot}_name") or f"source_{slot}"
     today_entity = _entry_value(entry, f"source_{slot}_today_entity")
-    tomorrow_entity = _entry_value(entry, f"source_{slot}_tomorrow_entity")
-    remaining_entity = _entry_value(entry, f"source_{slot}_remaining_entity")
+    explicit_tomorrow_entity = _entry_value(entry, f"source_{slot}_tomorrow_entity")
+    explicit_remaining_entity = _entry_value(entry, f"source_{slot}_remaining_entity")
     weight = _float_or_default(_entry_value(entry, f"source_{slot}_weight"), 1.0)
     bias_factor = _float_or_default(_entry_value(entry, f"source_{slot}_bias_factor"), 1.0)
     confidence = _float_or_default(_entry_value(entry, f"source_{slot}_confidence"), 1.0)
@@ -81,32 +82,25 @@ def _build_source_from_entry(
         return None, None
 
     today_state = hass.states.get(today_entity)
-    resolved = normalize_source_entities(
-        today_entity=today_entity,
-        tomorrow_entity=tomorrow_entity,
-        remaining_entity=remaining_entity,
+    resolved = resolve_related_entities(
+        today_entity_id=today_entity,
         attributes=today_state.attributes if today_state else None,
+        explicit_tomorrow_entity_id=explicit_tomorrow_entity,
+        explicit_remaining_entity_id=explicit_remaining_entity,
     )
 
-    today_entity = resolved.today_entity or None
-    tomorrow_entity = resolved.tomorrow_entity
-    remaining_entity = resolved.remaining_entity
-
-    if not today_entity:
-        return None, None
-
-    today_state = hass.states.get(today_entity)
-    tomorrow_state = hass.states.get(tomorrow_entity) if tomorrow_entity else None
-    remaining_state = hass.states.get(remaining_entity) if remaining_entity else None
+    today_state = hass.states.get(resolved.today_entity_id)
+    tomorrow_state = hass.states.get(resolved.tomorrow_entity_id) if resolved.tomorrow_entity_id else None
+    remaining_state = hass.states.get(resolved.remaining_entity_id) if resolved.remaining_entity_id else None
 
     today_kwh = _state_to_float(today_state.state if today_state else None)
     tomorrow_kwh = _state_to_float(tomorrow_state.state if tomorrow_state else None)
     remaining_today_kwh = _state_to_float(remaining_state.state if remaining_state else None)
-    remaining_method = "direct_sensor" if remaining_today_kwh is not None and remaining_entity else None
+    remaining_method = "direct_sensor" if remaining_today_kwh is not None and resolved.remaining_entity_id else None
 
     if remaining_today_kwh is None and today_state is not None:
         remaining_today_kwh = derive_remaining_from_attributes(
-            source_type=resolved.source_type,
+            source_type=resolved.profile,
             attributes=today_state.attributes,
             now=datetime.now(timezone.utc),
         )
@@ -126,11 +120,11 @@ def _build_source_from_entry(
     )
     snapshot = SourceSnapshot(
         name=name,
-        source_type=resolved.source_type,
-        today_entity=today_entity,
-        tomorrow_entity=tomorrow_entity,
-        remaining_entity=remaining_entity,
-        auto_mapped=resolved.auto_mapped,
+        profile=resolved.profile,
+        resolution_basis=resolved.resolution_basis,
+        today_entity=resolved.today_entity_id,
+        tomorrow_entity=resolved.tomorrow_entity_id,
+        remaining_entity=resolved.remaining_entity_id,
         remaining_method=remaining_method,
         today_kwh=source.today_kwh,
         tomorrow_kwh=source.tomorrow_kwh,
