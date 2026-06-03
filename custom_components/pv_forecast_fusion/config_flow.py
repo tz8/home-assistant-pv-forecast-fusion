@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_WEIGHT,
     DOMAIN,
 )
+from .source_presets import normalize_source_entities
 
 _FIELDS: tuple[tuple[str, str, str, str, str, str, str], ...] = (
     (
@@ -94,10 +95,30 @@ class PvForecastFusionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            if not any(user_input.get(today_key) for _, today_key, *_ in _FIELDS):
+            normalized_input = _normalize_user_input(self.hass, user_input)
+            if not any(normalized_input.get(today_key) for _, today_key, *_ in _FIELDS):
                 errors["base"] = "at_least_one_source"
             else:
-                title = user_input.get(CONF_NAME, DEFAULT_NAME).strip() or DEFAULT_NAME
-                return self.async_create_entry(title=title, data=user_input)
+                title = normalized_input.get(CONF_NAME, DEFAULT_NAME).strip() or DEFAULT_NAME
+                return self.async_create_entry(title=title, data=normalized_input)
 
         return self.async_show_form(step_id="user", data_schema=_schema_with_defaults(user_input), errors=errors)
+
+
+def _normalize_user_input(hass, user_input: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(user_input)
+    for _, today_key, tomorrow_key, remaining_key, *_ in _FIELDS:
+        today_entity = normalized.get(today_key)
+        if not today_entity:
+            continue
+        today_state = hass.states.get(today_entity)
+        resolved = normalize_source_entities(
+            today_entity=today_entity,
+            tomorrow_entity=normalized.get(tomorrow_key),
+            remaining_entity=normalized.get(remaining_key),
+            attributes=today_state.attributes if today_state else None,
+        )
+        normalized[today_key] = resolved.today_entity
+        normalized[tomorrow_key] = resolved.tomorrow_entity or ""
+        normalized[remaining_key] = resolved.remaining_entity or ""
+    return normalized

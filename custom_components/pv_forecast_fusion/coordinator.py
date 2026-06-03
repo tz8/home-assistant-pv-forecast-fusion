@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -14,14 +14,18 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN, SOURCE_SLOTS
 from .fusion import ForecastSource, FusionResult, fuse_sources
 from .source_parser import extract_curve_values
+from .source_presets import derive_remaining_from_attributes, normalize_source_entities
 
 
 @dataclass(slots=True)
 class SourceSnapshot:
     name: str
+    source_type: str
     today_entity: str | None
     tomorrow_entity: str | None
     remaining_entity: str | None
+    auto_mapped: bool
+    remaining_method: str | None
     today_kwh: float | None
     tomorrow_kwh: float | None
     remaining_today_kwh: float | None
@@ -77,15 +81,44 @@ def _build_source_from_entry(
         return None, None
 
     today_state = hass.states.get(today_entity)
+    resolved = normalize_source_entities(
+        today_entity=today_entity,
+        tomorrow_entity=tomorrow_entity,
+        remaining_entity=remaining_entity,
+        attributes=today_state.attributes if today_state else None,
+    )
+
+    today_entity = resolved.today_entity or None
+    tomorrow_entity = resolved.tomorrow_entity
+    remaining_entity = resolved.remaining_entity
+
+    if not today_entity:
+        return None, None
+
+    today_state = hass.states.get(today_entity)
     tomorrow_state = hass.states.get(tomorrow_entity) if tomorrow_entity else None
     remaining_state = hass.states.get(remaining_entity) if remaining_entity else None
+
+    today_kwh = _state_to_float(today_state.state if today_state else None)
+    tomorrow_kwh = _state_to_float(tomorrow_state.state if tomorrow_state else None)
+    remaining_today_kwh = _state_to_float(remaining_state.state if remaining_state else None)
+    remaining_method = "direct_sensor" if remaining_today_kwh is not None and remaining_entity else None
+
+    if remaining_today_kwh is None and today_state is not None:
+        remaining_today_kwh = derive_remaining_from_attributes(
+            source_type=resolved.source_type,
+            attributes=today_state.attributes,
+            now=datetime.now(timezone.utc),
+        )
+        if remaining_today_kwh is not None:
+            remaining_method = "derived_from_today_attributes"
 
     curve_values = extract_curve_values(today_state.attributes if today_state else None)
     source = ForecastSource(
         name=name,
-        today_kwh=_state_to_float(today_state.state if today_state else None),
-        tomorrow_kwh=_state_to_float(tomorrow_state.state if tomorrow_state else None),
-        remaining_today_kwh=_state_to_float(remaining_state.state if remaining_state else None),
+        today_kwh=today_kwh,
+        tomorrow_kwh=tomorrow_kwh,
+        remaining_today_kwh=remaining_today_kwh,
         weight=weight,
         bias_factor=bias_factor,
         confidence=confidence,
@@ -93,9 +126,12 @@ def _build_source_from_entry(
     )
     snapshot = SourceSnapshot(
         name=name,
+        source_type=resolved.source_type,
         today_entity=today_entity,
         tomorrow_entity=tomorrow_entity,
         remaining_entity=remaining_entity,
+        auto_mapped=resolved.auto_mapped,
+        remaining_method=remaining_method,
         today_kwh=source.today_kwh,
         tomorrow_kwh=source.tomorrow_kwh,
         remaining_today_kwh=source.remaining_today_kwh,
