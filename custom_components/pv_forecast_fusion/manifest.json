@@ -1,0 +1,13 @@
+{
+  "domain": "pv_forecast_fusion",
+  "name": "PV Forecast Fusion",
+  "codeowners": ["@tz8"],
+  "config_flow": true,
+  "documentation": "https://github.com/tz8/home-assistant-pv-forecast-fusion",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/tz8/home-assistant-pv-forecast-fusion/issues",
+  "loggers": ["custom_components.pv_forecast_fusion"],
+  "requirements": [],
+  "version": "0.1.0"
+}

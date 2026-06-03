@@ -1,0 +1,37 @@
+{
+  "config": {
+    "error": {
+      "at_least_one_source": "At least one source with a today entity is required."
+    },
+    "step": {
+      "user": {
+        "title": "PV Forecast Fusion",
+        "description": "Configure up to three forecast sources.",
+        "data": {
+          "name": "Name",
+          "source_1_name": "Source 1 name",
+          "source_1_today_entity": "Source 1 today entity",
+          "source_1_tomorrow_entity": "Source 1 tomorrow entity",
+          "source_1_remaining_entity": "Source 1 remaining-today entity",
+          "source_1_weight": "Source 1 weight",
+          "source_1_bias_factor": "Source 1 bias factor",
+          "source_1_confidence": "Source 1 confidence",
+          "source_2_name": "Source 2 name",
+          "source_2_today_entity": "Source 2 today entity",
+          "source_2_tomorrow_entity": "Source 2 tomorrow entity",
+          "source_2_remaining_entity": "Source 2 remaining-today entity",
+          "source_2_weight": "Source 2 weight",
+          "source_2_bias_factor": "Source 2 bias factor",
+          "source_2_confidence": "Source 2 confidence",
+          "source_3_name": "Source 3 name",
+          "source_3_today_entity": "Source 3 today entity",
+          "source_3_tomorrow_entity": "Source 3 tomorrow entity",
+          "source_3_remaining_entity": "Source 3 remaining-today entity",
+          "source_3_weight": "Source 3 weight",
+          "source_3_bias_factor": "Source 3 bias factor",
+          "source_3_confidence": "Source 3 confidence"
+        }
+      }
+    }
+  }
+}

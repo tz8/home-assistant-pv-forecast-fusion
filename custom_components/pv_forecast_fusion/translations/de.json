@@ -1,0 +1,37 @@
+{
+  "config": {
+    "error": {
+      "at_least_one_source": "Mindestens eine Quelle mit Heute-Entität ist erforderlich."
+    },
+    "step": {
+      "user": {
+        "title": "PV Forecast Fusion",
+        "description": "Konfiguriere bis zu drei Forecast-Quellen.",
+        "data": {
+          "name": "Name",
+          "source_1_name": "Quelle 1 Name",
+          "source_1_today_entity": "Quelle 1 Entität heute",
+          "source_1_tomorrow_entity": "Quelle 1 Entität morgen",
+          "source_1_remaining_entity": "Quelle 1 Entität Rest heute",
+          "source_1_weight": "Quelle 1 Gewicht",
+          "source_1_bias_factor": "Quelle 1 Bias-Faktor",
+          "source_1_confidence": "Quelle 1 Konfidenz",
+          "source_2_name": "Quelle 2 Name",
+          "source_2_today_entity": "Quelle 2 Entität heute",
+          "source_2_tomorrow_entity": "Quelle 2 Entität morgen",
+          "source_2_remaining_entity": "Quelle 2 Entität Rest heute",
+          "source_2_weight": "Quelle 2 Gewicht",
+          "source_2_bias_factor": "Quelle 2 Bias-Faktor",
+          "source_2_confidence": "Quelle 2 Konfidenz",
+          "source_3_name": "Quelle 3 Name",
+          "source_3_today_entity": "Quelle 3 Entität heute",
+          "source_3_tomorrow_entity": "Quelle 3 Entität morgen",
+          "source_3_remaining_entity": "Quelle 3 Entität Rest heute",
+          "source_3_weight": "Quelle 3 Gewicht",
+          "source_3_bias_factor": "Quelle 3 Bias-Faktor",
+          "source_3_confidence": "Quelle 3 Konfidenz"
+        }
+      }
+    }
+  }
+}
