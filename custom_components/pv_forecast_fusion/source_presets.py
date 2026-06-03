@@ -6,14 +6,18 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from .const import DEFAULT_SOURCE_TYPE, SOURCE_TYPE_OPTIONS
+
 
 @dataclass(slots=True)
 class ResolvedSourceEntities:
+    configured_source_type: str
     source_type: str
     today_entity: str
     tomorrow_entity: str | None
     remaining_entity: str | None
     auto_mapped: bool
+    resolution_basis: str
 
 
 def normalize_source_entities(
@@ -21,22 +25,26 @@ def normalize_source_entities(
     tomorrow_entity: str | None,
     remaining_entity: str | None,
     attributes: dict[str, Any] | None,
+    configured_source_type: str | None = None,
 ) -> ResolvedSourceEntities:
     today_entity = (today_entity or "").strip()
     today_entity = today_entity or None
     tomorrow_entity = _clean_entity_id(tomorrow_entity)
     remaining_entity = _clean_entity_id(remaining_entity)
+    configured_source_type = _normalize_source_type(configured_source_type)
 
-    source_type = detect_source_type(today_entity, attributes)
+    source_type, resolution_basis = _resolve_source_type(today_entity, attributes, configured_source_type)
     auto_mapped = False
 
     if today_entity is None:
         return ResolvedSourceEntities(
+            configured_source_type=configured_source_type,
             source_type=source_type,
             today_entity="",
             tomorrow_entity=tomorrow_entity,
             remaining_entity=remaining_entity,
             auto_mapped=False,
+            resolution_basis=resolution_basis,
         )
 
     inferred_tomorrow, inferred_remaining = infer_related_entities(today_entity, source_type)
@@ -48,11 +56,13 @@ def normalize_source_entities(
         auto_mapped = True
 
     return ResolvedSourceEntities(
+        configured_source_type=configured_source_type,
         source_type=source_type,
         today_entity=today_entity,
         tomorrow_entity=tomorrow_entity,
         remaining_entity=remaining_entity,
         auto_mapped=auto_mapped,
+        resolution_basis=resolution_basis,
     )
 
 
@@ -62,10 +72,10 @@ def detect_source_type(entity_id: str | None, attributes: dict[str, Any] | None 
 
     if "solcast_pv_forecast" in entity_id or isinstance(attributes.get("detailedForecast"), list):
         return "solcast"
+    if entity_id.startswith("sensor.energy_production_today") or entity_id.startswith("sensor.forecast_solar_"):
+        return "forecast_solar"
     if entity_id.endswith("_energy_production_today") or entity_id.endswith("_energy_production_today_2"):
         return "open_meteo"
-    if "energy_production_today" in entity_id or entity_id.startswith("sensor.forecast_solar_"):
-        return "forecast_solar"
     return "manual"
 
 
@@ -73,9 +83,9 @@ def infer_related_entities(today_entity: str, source_type: str) -> tuple[str | N
     if source_type == "solcast" and today_entity.endswith("_prognose_heute"):
         return today_entity.removesuffix("_prognose_heute") + "_prognose_morgen", None
 
-    if source_type == "open_meteo" and "_energy_production_today" in today_entity:
-        tomorrow_entity = today_entity.replace("_energy_production_today", "_energy_production_tomorrow")
-        remaining_entity = today_entity.replace("_energy_production_today", "_energy_production_today_remaining")
+    if source_type == "open_meteo" and "energy_production_today" in today_entity:
+        tomorrow_entity = today_entity.replace("energy_production_today", "energy_production_tomorrow")
+        remaining_entity = today_entity.replace("energy_production_today", "energy_production_today_remaining")
         return tomorrow_entity, remaining_entity
 
     if source_type == "forecast_solar" and "energy_production_today" in today_entity:
@@ -105,6 +115,23 @@ def derive_remaining_from_attributes(
             return _sum_future_mapping_watts(watts, now)
 
     return None
+
+
+def _resolve_source_type(
+    today_entity: str | None,
+    attributes: dict[str, Any] | None,
+    configured_source_type: str,
+) -> tuple[str, str]:
+    if configured_source_type != DEFAULT_SOURCE_TYPE:
+        return configured_source_type, "configured_source_type"
+    return detect_source_type(today_entity, attributes), "auto_detected"
+
+
+def _normalize_source_type(value: str | None) -> str:
+    value = (value or DEFAULT_SOURCE_TYPE).strip().lower()
+    if value not in SOURCE_TYPE_OPTIONS:
+        return DEFAULT_SOURCE_TYPE
+    return value
 
 
 def _sum_future_intervals(items: Any, key: str, now: datetime) -> float | None:

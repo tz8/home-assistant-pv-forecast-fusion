@@ -1,9 +1,14 @@
-"""Detect provider profiles and infer related forecast entities."""
+"""Compatibility helpers for source profile detection.
+
+Deprecated in favor of source_presets; kept for tests and transitional callers.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+
+from .source_presets import detect_source_type, normalize_source_entities
 
 
 @dataclass(slots=True)
@@ -16,22 +21,8 @@ class ResolvedSourceEntities:
 
 
 def detect_source_profile(entity_id: str, attributes: dict[str, Any] | None) -> str:
-    entity_id_lc = entity_id.lower()
-    attrs = attributes or {}
-
-    if isinstance(attrs.get("detailedForecast"), list) or isinstance(attrs.get("detailedHourly"), list):
-        return "solcast"
-
-    if "solcast" in entity_id_lc:
-        return "solcast"
-
-    if "hinzenbusch" in entity_id_lc or ("watts" in attrs and "wh_period" in attrs):
-        return "forecast_solar"
-
-    if "energy_production_today" in entity_id_lc:
-        return "open_meteo"
-
-    return "generic"
+    """Compatibility alias for preset detection."""
+    return detect_source_type(entity_id, attributes)
 
 
 def resolve_related_entities(
@@ -40,38 +31,16 @@ def resolve_related_entities(
     explicit_tomorrow_entity_id: str | None = None,
     explicit_remaining_entity_id: str | None = None,
 ) -> ResolvedSourceEntities:
-    profile = detect_source_profile(today_entity_id, attributes)
-    tomorrow_entity_id = explicit_tomorrow_entity_id or _infer_tomorrow_entity_id(today_entity_id, profile)
-    remaining_entity_id = explicit_remaining_entity_id or _infer_remaining_entity_id(today_entity_id, profile)
-    resolution_basis = "explicit_override" if explicit_tomorrow_entity_id or explicit_remaining_entity_id else "auto_detected"
-
-    return ResolvedSourceEntities(
-        profile=profile,
-        today_entity_id=today_entity_id,
-        tomorrow_entity_id=tomorrow_entity_id,
-        remaining_entity_id=remaining_entity_id,
-        resolution_basis=resolution_basis,
+    resolved = normalize_source_entities(
+        today_entity=today_entity_id,
+        tomorrow_entity=explicit_tomorrow_entity_id,
+        remaining_entity=explicit_remaining_entity_id,
+        attributes=attributes,
     )
-
-
-def _infer_tomorrow_entity_id(today_entity_id: str, profile: str) -> str | None:
-    if profile == "solcast" and today_entity_id.endswith("_heute"):
-        return today_entity_id[: -len("_heute")] + "_morgen"
-
-    if today_entity_id.endswith("_today"):
-        return today_entity_id[: -len("_today")] + "_tomorrow"
-
-    if "_today_" in today_entity_id:
-        return today_entity_id.replace("_today_", "_tomorrow_", 1)
-
-    return None
-
-
-def _infer_remaining_entity_id(today_entity_id: str, profile: str) -> str | None:
-    if profile in {"forecast_solar", "open_meteo"}:
-        if today_entity_id.endswith("_today"):
-            return today_entity_id + "_remaining"
-        if "_today_" in today_entity_id:
-            return today_entity_id.replace("_today_", "_today_remaining_", 1)
-
-    return None
+    return ResolvedSourceEntities(
+        profile=resolved.source_type,
+        today_entity_id=resolved.today_entity,
+        tomorrow_entity_id=resolved.tomorrow_entity,
+        remaining_entity_id=resolved.remaining_entity,
+        resolution_basis=resolved.resolution_basis,
+    )

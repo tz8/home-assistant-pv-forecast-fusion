@@ -14,14 +14,14 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN, SOURCE_SLOTS
 from .fusion import ForecastSource, fuse_sources
 from .source_parser import extract_curve_values
-from .source_presets import derive_remaining_from_attributes
-from .source_profile import resolve_related_entities
+from .source_presets import derive_remaining_from_attributes, normalize_source_entities
 
 
 @dataclass(slots=True)
 class SourceSnapshot:
     name: str
-    profile: str
+    configured_source_type: str
+    source_type: str
     resolution_basis: str
     today_entity: str | None
     tomorrow_entity: str | None
@@ -71,6 +71,7 @@ def _build_source_from_entry(
     hass: HomeAssistant, entry: ConfigEntry, slot: int
 ) -> tuple[ForecastSource | None, SourceSnapshot | None]:
     name = _entry_value(entry, f"source_{slot}_name") or f"source_{slot}"
+    configured_source_type = _entry_value(entry, f"source_{slot}_type") or "auto"
     today_entity = _entry_value(entry, f"source_{slot}_today_entity")
     explicit_tomorrow_entity = _entry_value(entry, f"source_{slot}_tomorrow_entity")
     explicit_remaining_entity = _entry_value(entry, f"source_{slot}_remaining_entity")
@@ -81,26 +82,27 @@ def _build_source_from_entry(
     if not today_entity:
         return None, None
 
-    today_state = hass.states.get(today_entity)
-    resolved = resolve_related_entities(
-        today_entity_id=today_entity,
-        attributes=today_state.attributes if today_state else None,
-        explicit_tomorrow_entity_id=explicit_tomorrow_entity,
-        explicit_remaining_entity_id=explicit_remaining_entity,
+    initial_today_state = hass.states.get(today_entity)
+    resolved = normalize_source_entities(
+        today_entity=today_entity,
+        tomorrow_entity=explicit_tomorrow_entity,
+        remaining_entity=explicit_remaining_entity,
+        attributes=initial_today_state.attributes if initial_today_state else None,
+        configured_source_type=configured_source_type,
     )
 
-    today_state = hass.states.get(resolved.today_entity_id)
-    tomorrow_state = hass.states.get(resolved.tomorrow_entity_id) if resolved.tomorrow_entity_id else None
-    remaining_state = hass.states.get(resolved.remaining_entity_id) if resolved.remaining_entity_id else None
+    today_state = hass.states.get(resolved.today_entity)
+    tomorrow_state = hass.states.get(resolved.tomorrow_entity) if resolved.tomorrow_entity else None
+    remaining_state = hass.states.get(resolved.remaining_entity) if resolved.remaining_entity else None
 
     today_kwh = _state_to_float(today_state.state if today_state else None)
     tomorrow_kwh = _state_to_float(tomorrow_state.state if tomorrow_state else None)
     remaining_today_kwh = _state_to_float(remaining_state.state if remaining_state else None)
-    remaining_method = "direct_sensor" if remaining_today_kwh is not None and resolved.remaining_entity_id else None
+    remaining_method = "direct_sensor" if remaining_today_kwh is not None and resolved.remaining_entity else None
 
     if remaining_today_kwh is None and today_state is not None:
         remaining_today_kwh = derive_remaining_from_attributes(
-            source_type=resolved.profile,
+            source_type=resolved.source_type,
             attributes=today_state.attributes,
             now=datetime.now(timezone.utc),
         )
@@ -120,11 +122,12 @@ def _build_source_from_entry(
     )
     snapshot = SourceSnapshot(
         name=name,
-        profile=resolved.profile,
+        configured_source_type=resolved.configured_source_type,
+        source_type=resolved.source_type,
         resolution_basis=resolved.resolution_basis,
-        today_entity=resolved.today_entity_id,
-        tomorrow_entity=resolved.tomorrow_entity_id,
-        remaining_entity=resolved.remaining_entity_id,
+        today_entity=resolved.today_entity,
+        tomorrow_entity=resolved.tomorrow_entity,
+        remaining_entity=resolved.remaining_entity,
         remaining_method=remaining_method,
         today_kwh=source.today_kwh,
         tomorrow_kwh=source.tomorrow_kwh,
@@ -151,6 +154,7 @@ def _state_to_float(value: str | None) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
 
 
 def _float_or_default(value: Any, default: float) -> float:

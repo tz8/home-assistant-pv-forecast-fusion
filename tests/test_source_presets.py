@@ -90,3 +90,36 @@ def test_derive_remaining_from_open_meteo_hourly_wh_period():
     )
 
     assert remaining == approx(0.65)
+
+
+def test_normalize_source_entities_respects_explicit_source_type_override():
+    resolved = normalize_source_entities(
+        today_entity="sensor.energy_production_today",
+        tomorrow_entity="",
+        remaining_entity="",
+        attributes={"friendly_name": "Irgendein Forecast"},
+        configured_source_type="open_meteo",
+    )
+
+    assert resolved.configured_source_type == "open_meteo"
+    assert resolved.source_type == "open_meteo"
+    assert resolved.resolution_basis == "configured_source_type"
+    assert resolved.tomorrow_entity == "sensor.energy_production_tomorrow"
+    assert resolved.remaining_entity == "sensor.energy_production_today_remaining"
+
+
+def test_normalize_source_entities_manual_type_disables_automapping():
+    resolved = normalize_source_entities(
+        today_entity="sensor.energy_production_today_2",
+        tomorrow_entity="",
+        remaining_entity="",
+        attributes=None,
+        configured_source_type="manual",
+    )
+
+    assert resolved.configured_source_type == "manual"
+    assert resolved.source_type == "manual"
+    assert resolved.resolution_basis == "configured_source_type"
+    assert resolved.tomorrow_entity is None
+    assert resolved.remaining_entity is None
+    assert resolved.auto_mapped is False

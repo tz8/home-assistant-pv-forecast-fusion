@@ -10,6 +10,7 @@
         "data": {
           "name": "Name",
           "source_1_name": "Quelle 1 Name",
+          "source_1_type": "Quelle 1 Typ",
           "source_1_today_entity": "Quelle 1 Entität heute",
           "source_1_tomorrow_entity": "Quelle 1 Entität morgen",
           "source_1_remaining_entity": "Quelle 1 Entität Rest heute",
@@ -17,6 +18,7 @@
           "source_1_bias_factor": "Quelle 1 Bias-Faktor",
           "source_1_confidence": "Quelle 1 Konfidenz",
           "source_2_name": "Quelle 2 Name",
+          "source_2_type": "Quelle 2 Typ",
           "source_2_today_entity": "Quelle 2 Entität heute",
           "source_2_tomorrow_entity": "Quelle 2 Entität morgen",
           "source_2_remaining_entity": "Quelle 2 Entität Rest heute",
@@ -24,6 +26,7 @@
           "source_2_bias_factor": "Quelle 2 Bias-Faktor",
           "source_2_confidence": "Quelle 2 Konfidenz",
           "source_3_name": "Quelle 3 Name",
+          "source_3_type": "Quelle 3 Typ",
           "source_3_today_entity": "Quelle 3 Entität heute",
           "source_3_tomorrow_entity": "Quelle 3 Entität morgen",
           "source_3_remaining_entity": "Quelle 3 Entität Rest heute",
