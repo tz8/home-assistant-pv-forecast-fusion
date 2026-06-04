@@ -1,5 +1,8 @@
 {
   "config": {
+    "abort": {
+      "reconfigure_successful": "Configuration updated successfully."
+    },
     "error": {
       "source_today_required": "A today entity is required for each configured source."
     },
@@ -13,6 +16,17 @@
         },
         "data_description": {
           "source_count": "Configure between one and three sources. Each selected source gets its own guided setup step."
+        }
+      },
+      "reconfigure": {
+        "title": "Update PV Forecast Fusion",
+        "description": "Run the guided setup again for this existing entry. You can rename it, add another forecast source, or remove an existing one by lowering the source count.",
+        "data": {
+          "name": "Name",
+          "source_count": "Number of forecast sources"
+        },
+        "data_description": {
+          "source_count": "Choose how many sources this entry should keep after saving. Lowering the number removes the extra source slots from the stored configuration."
         }
       },
       "source_1": {

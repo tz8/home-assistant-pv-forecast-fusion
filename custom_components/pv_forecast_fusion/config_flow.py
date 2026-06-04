@@ -207,6 +207,7 @@ class PvForecastFusionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._config_data: dict[str, Any] = {}
         self._source_count = 1
+        self._reconfigure_entry = None
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         errors: dict[str, str] = {}
@@ -215,11 +216,38 @@ class PvForecastFusionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             title = str(user_input.get(CONF_NAME, DEFAULT_NAME)).strip() or DEFAULT_NAME
             self._config_data = {CONF_NAME: title}
             self._source_count = int(user_input.get(CONF_SOURCE_COUNT, 1))
+            self._reconfigure_entry = None
             return await self.async_step_source_1()
 
         return self.async_show_form(
             step_id="user",
             data_schema=_build_intro_schema(user_input),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            title = str(user_input.get(CONF_NAME, DEFAULT_NAME)).strip() or DEFAULT_NAME
+            self._config_data = dict(entry.data)
+            self._config_data[CONF_NAME] = title
+            self._source_count = int(user_input.get(CONF_SOURCE_COUNT, 1))
+            self._reconfigure_entry = entry
+            return await self.async_step_source_1()
+
+        self._config_data = dict(entry.data)
+        self._source_count = _configured_source_count(self._config_data)
+        self._reconfigure_entry = entry
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_build_intro_schema(
+                {
+                    CONF_NAME: entry.title or entry.data.get(CONF_NAME, DEFAULT_NAME),
+                    CONF_SOURCE_COUNT: self._source_count,
+                }
+            ),
             errors=errors,
         )
 
@@ -247,7 +275,14 @@ class PvForecastFusionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._config_data.update(_normalize_source_input(self.hass, fields, mapped_input))
                 if fields.slot >= self._source_count:
                     title = self._config_data.get(CONF_NAME, DEFAULT_NAME)
-                    return self.async_create_entry(title=title, data=self._config_data)
+                    final_data = _finalize_config_data(self._config_data, self._source_count)
+                    if self._reconfigure_entry is not None:
+                        return self.async_update_reload_and_abort(
+                            self._reconfigure_entry,
+                            title=title,
+                            data=final_data,
+                        )
+                    return self.async_create_entry(title=title, data=final_data)
                 return await getattr(self, f"async_step_source_{fields.slot + 1}")()
 
         return self.async_show_form(
@@ -281,6 +316,36 @@ def _source_form_defaults_from_config(
         FORM_SOURCE_INFLUENCE: weight * confidence,
         FORM_SOURCE_ADJUSTMENT_PERCENT: _bias_factor_to_adjustment_percent(bias_factor),
     }
+
+
+def _configured_source_count(config_data: dict[str, Any]) -> int:
+    configured_slots = [
+        slot
+        for slot, fields in _SOURCE_FIELDS_BY_SLOT.items()
+        if str(config_data.get(fields.today_key, "")).strip()
+    ]
+    if not configured_slots:
+        return 1
+    return max(configured_slots)
+
+
+def _finalize_config_data(config_data: dict[str, Any], source_count: int) -> dict[str, Any]:
+    finalized = dict(config_data)
+    for slot, fields in _SOURCE_FIELDS_BY_SLOT.items():
+        if slot <= source_count:
+            continue
+        for key in (
+            fields.name_key,
+            fields.type_key,
+            fields.today_key,
+            fields.tomorrow_key,
+            fields.remaining_key,
+            fields.weight_key,
+            fields.bias_key,
+            fields.confidence_key,
+        ):
+            finalized.pop(key, None)
+    return finalized
 
 
 def _map_source_form_to_config(

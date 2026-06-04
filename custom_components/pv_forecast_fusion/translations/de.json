@@ -1,18 +1,32 @@
 {
   "config": {
+    "abort": {
+      "reconfigure_successful": "Konfiguration erfolgreich aktualisiert."
+    },
     "error": {
       "source_today_required": "Für jede konfigurierte Quelle ist eine Heute-Entität erforderlich."
     },
     "step": {
       "user": {
         "title": "PV Forecast Fusion",
-        "description": "Wähle einen Namen und wie viele Forecast-Quellen du kombinieren möchtest. Die Quellen werden in den nächsten Schritten nacheinander konfiguriert.",
+        "description": "Wähle einen Namen und wie viele Forecast-Quellen du kombinieren möchtest. Die Quellen werden in den nächsten Schritten nacheinander eingerichtet.",
         "data": {
           "name": "Name",
           "source_count": "Anzahl der Forecast-Quellen"
         },
         "data_description": {
-          "source_count": "Konfiguriere zwischen einer und drei Quellen. Für jede ausgewählte Quelle gibt es einen eigenen geführten Schritt."
+          "source_count": "Konfiguriere zwischen einer und drei Quellen. Für jede gewählte Quelle folgt ein eigener geführter Einrichtungsschritt."
+        }
+      },
+      "reconfigure": {
+        "title": "PV Forecast Fusion aktualisieren",
+        "description": "Starte die geführte Einrichtung für diesen bestehenden Eintrag erneut. Du kannst ihn umbenennen, eine weitere Forecast-Quelle hinzufügen oder eine vorhandene entfernen, indem du die Quellenanzahl reduzierst.",
+        "data": {
+          "name": "Name",
+          "source_count": "Anzahl der Forecast-Quellen"
+        },
+        "data_description": {
+          "source_count": "Wähle, wie viele Quellen dieser Eintrag nach dem Speichern behalten soll. Wenn du die Zahl reduzierst, werden die zusätzlichen Quell-Slots aus der gespeicherten Konfiguration entfernt."
         }
       },
       "source_1": {
