@@ -1,38 +1,84 @@
 {
   "config": {
     "error": {
-      "at_least_one_source": "Mindestens eine Quelle mit Heute-Entität ist erforderlich."
+      "source_today_required": "Für jede konfigurierte Quelle ist eine Heute-Entität erforderlich."
     },
     "step": {
       "user": {
         "title": "PV Forecast Fusion",
-        "description": "Konfiguriere bis zu drei Forecast-Quellen.",
+        "description": "Wähle einen Namen und wie viele Forecast-Quellen du kombinieren möchtest. Die Quellen werden in den nächsten Schritten nacheinander konfiguriert.",
         "data": {
           "name": "Name",
-          "source_1_name": "Quelle 1 Name",
-          "source_1_type": "Quelle 1 Typ",
-          "source_1_today_entity": "Quelle 1 Entität heute",
-          "source_1_tomorrow_entity": "Quelle 1 Entität morgen",
-          "source_1_remaining_entity": "Quelle 1 Entität Rest heute",
-          "source_1_weight": "Quelle 1 Gewicht",
-          "source_1_bias_factor": "Quelle 1 Bias-Faktor",
-          "source_1_confidence": "Quelle 1 Konfidenz",
-          "source_2_name": "Quelle 2 Name",
-          "source_2_type": "Quelle 2 Typ",
-          "source_2_today_entity": "Quelle 2 Entität heute",
-          "source_2_tomorrow_entity": "Quelle 2 Entität morgen",
-          "source_2_remaining_entity": "Quelle 2 Entität Rest heute",
-          "source_2_weight": "Quelle 2 Gewicht",
-          "source_2_bias_factor": "Quelle 2 Bias-Faktor",
-          "source_2_confidence": "Quelle 2 Konfidenz",
-          "source_3_name": "Quelle 3 Name",
-          "source_3_type": "Quelle 3 Typ",
-          "source_3_today_entity": "Quelle 3 Entität heute",
-          "source_3_tomorrow_entity": "Quelle 3 Entität morgen",
-          "source_3_remaining_entity": "Quelle 3 Entität Rest heute",
-          "source_3_weight": "Quelle 3 Gewicht",
-          "source_3_bias_factor": "Quelle 3 Bias-Faktor",
-          "source_3_confidence": "Quelle 3 Konfidenz"
+          "source_count": "Anzahl der Forecast-Quellen"
+        },
+        "data_description": {
+          "source_count": "Konfiguriere zwischen einer und drei Quellen. Für jede ausgewählte Quelle gibt es einen eigenen geführten Schritt."
+        }
+      },
+      "source_1": {
+        "title": "Quelle 1 konfigurieren",
+        "description": "Richte die erste Forecast-Quelle ein. Die Heute-Entität ist erforderlich; Morgen und Rest-heute können meist leer bleiben, wenn die Auto-Erkennung sie ableiten kann.",
+        "data": {
+          "source_name": "Quellenname",
+          "source_type": "Quellentyp",
+          "source_today_entity": "Heute-Entität",
+          "source_tomorrow_entity": "Morgen-Entität",
+          "source_remaining_entity": "Rest-heute-Entität",
+          "source_influence": "Einfluss",
+          "source_adjustment_percent": "Anpassung (%)"
+        },
+        "data_description": {
+          "source_name": "Optionales Label für Diagnosen und die Erklärung der fusionierten Quellen.",
+          "source_type": "In den meisten Fällen auto verwenden. Einen Providertyp nur erzwingen, wenn die Preset-Erkennung die Zuordnung falsch erkennt.",
+          "source_today_entity": "Erforderlich. Du kannst eine kommagetrennte Liste eintragen, wenn diese Quelle mehrere Arrays oder Sensoren umfasst.",
+          "source_tomorrow_entity": "Optional. Leer lassen, damit Provider-Presets nach Möglichkeit eine passende Morgen-Entität ableiten können.",
+          "source_remaining_entity": "Optional. Leer lassen, damit eine Rest-heute-Entität oder ein Wert aus den Attributen der Heute-Entität abgeleitet werden kann, wenn der Provider das unterstützt.",
+          "source_influence": "Wie stark diese Quelle das Fusionsergebnis beeinflussen soll. Slider-Bereich: 0 bis 2. Ersetzt die bisherigen getrennten Werte Gewicht und Konfidenz.",
+          "source_adjustment_percent": "Manuelle Korrektur in Prozent. Slider-Bereich: -100 % bis +100 %. Beispiel: -10 senkt diese Quelle um 10 %, +15 erhöht sie um 15 %."
+        }
+      },
+      "source_2": {
+        "title": "Quelle 2 konfigurieren",
+        "description": "Richte die zweite Forecast-Quelle ein. Es gelten dieselben Entity-Regeln wie bei Quelle 1.",
+        "data": {
+          "source_name": "Quellenname",
+          "source_type": "Quellentyp",
+          "source_today_entity": "Heute-Entität",
+          "source_tomorrow_entity": "Morgen-Entität",
+          "source_remaining_entity": "Rest-heute-Entität",
+          "source_influence": "Einfluss",
+          "source_adjustment_percent": "Anpassung (%)"
+        },
+        "data_description": {
+          "source_name": "Optionales Label für Diagnosen und die Erklärung der fusionierten Quellen.",
+          "source_type": "In den meisten Fällen auto verwenden. Einen Providertyp nur erzwingen, wenn die Preset-Erkennung die Zuordnung falsch erkennt.",
+          "source_today_entity": "Erforderlich. Du kannst eine kommagetrennte Liste eintragen, wenn diese Quelle mehrere Arrays oder Sensoren umfasst.",
+          "source_tomorrow_entity": "Optional. Leer lassen, damit Provider-Presets nach Möglichkeit eine passende Morgen-Entität ableiten können.",
+          "source_remaining_entity": "Optional. Leer lassen, damit eine Rest-heute-Entität oder ein Wert aus den Attributen der Heute-Entität abgeleitet werden kann, wenn der Provider das unterstützt.",
+          "source_influence": "Wie stark diese Quelle das Fusionsergebnis beeinflussen soll. Slider-Bereich: 0 bis 2. Ersetzt die bisherigen getrennten Werte Gewicht und Konfidenz.",
+          "source_adjustment_percent": "Manuelle Korrektur in Prozent. Slider-Bereich: -100 % bis +100 %. Beispiel: -10 senkt diese Quelle um 10 %, +15 erhöht sie um 15 %."
+        }
+      },
+      "source_3": {
+        "title": "Quelle 3 konfigurieren",
+        "description": "Richte die dritte Forecast-Quelle ein. Es gelten dieselben Entity-Regeln wie bei Quelle 1.",
+        "data": {
+          "source_name": "Quellenname",
+          "source_type": "Quellentyp",
+          "source_today_entity": "Heute-Entität",
+          "source_tomorrow_entity": "Morgen-Entität",
+          "source_remaining_entity": "Rest-heute-Entität",
+          "source_influence": "Einfluss",
+          "source_adjustment_percent": "Anpassung (%)"
+        },
+        "data_description": {
+          "source_name": "Optionales Label für Diagnosen und die Erklärung der fusionierten Quellen.",
+          "source_type": "In den meisten Fällen auto verwenden. Einen Providertyp nur erzwingen, wenn die Preset-Erkennung die Zuordnung falsch erkennt.",
+          "source_today_entity": "Erforderlich. Du kannst eine kommagetrennte Liste eintragen, wenn diese Quelle mehrere Arrays oder Sensoren umfasst.",
+          "source_tomorrow_entity": "Optional. Leer lassen, damit Provider-Presets nach Möglichkeit eine passende Morgen-Entität ableiten können.",
+          "source_remaining_entity": "Optional. Leer lassen, damit eine Rest-heute-Entität oder ein Wert aus den Attributen der Heute-Entität abgeleitet werden kann, wenn der Provider das unterstützt.",
+          "source_influence": "Wie stark diese Quelle das Fusionsergebnis beeinflussen soll. Slider-Bereich: 0 bis 2. Ersetzt die bisherigen getrennten Werte Gewicht und Konfidenz.",
+          "source_adjustment_percent": "Manuelle Korrektur in Prozent. Slider-Bereich: -100 % bis +100 %. Beispiel: -10 senkt diese Quelle um 10 %, +15 erhöht sie um 15 %."
         }
       }
     }
