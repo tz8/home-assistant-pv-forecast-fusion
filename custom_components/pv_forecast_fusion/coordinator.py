@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -16,6 +17,9 @@ from .fusion import ForecastSource, fuse_sources
 from .source_entity_groups import aggregate_curve_values, aggregate_numeric_values, expand_entity_group
 from .source_parser import extract_curve_values
 from .source_presets import derive_remaining_from_attributes
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -47,7 +51,7 @@ class PvForecastFusionCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(
             hass,
-            logger=None,
+            logger=_LOGGER,
             name=f"{DOMAIN}_{entry.entry_id}",
             update_interval=timedelta(minutes=DEFAULT_SCAN_INTERVAL_MINUTES),
         )

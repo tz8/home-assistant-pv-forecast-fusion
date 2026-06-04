@@ -54,6 +54,8 @@ FORM_SOURCE_TYPE = "source_type"
 FORM_SOURCE_TODAY_ENTITY = "source_today_entity"
 FORM_SOURCE_TOMORROW_ENTITY = "source_tomorrow_entity"
 FORM_SOURCE_REMAINING_ENTITY = "source_remaining_entity"
+FORM_SOURCE_TOMORROW_ENTITY_CSV = "source_tomorrow_entity_csv"
+FORM_SOURCE_REMAINING_ENTITY_CSV = "source_remaining_entity_csv"
 FORM_SOURCE_INFLUENCE = "source_influence"
 FORM_SOURCE_ADJUSTMENT_PERCENT = "source_adjustment_percent"
 
@@ -123,50 +125,78 @@ def _build_intro_schema(user_input: dict[str, Any] | None = None) -> vol.Schema:
 
 def _build_source_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
     defaults = defaults or {}
-    return vol.Schema(
-        {
-            vol.Optional(FORM_SOURCE_NAME, default=defaults.get(FORM_SOURCE_NAME, "")): str,
-            vol.Optional(
-                FORM_SOURCE_TYPE,
-                default=defaults.get(FORM_SOURCE_TYPE, DEFAULT_SOURCE_TYPE),
-            ): vol.In(SOURCE_TYPE_OPTIONS),
-            vol.Required(
-                FORM_SOURCE_TODAY_ENTITY,
-                default=defaults.get(FORM_SOURCE_TODAY_ENTITY, ""),
-            ): str,
-            vol.Optional(
-                FORM_SOURCE_TOMORROW_ENTITY,
-                default=defaults.get(FORM_SOURCE_TOMORROW_ENTITY, ""),
-            ): str,
-            vol.Optional(
-                FORM_SOURCE_REMAINING_ENTITY,
-                default=defaults.get(FORM_SOURCE_REMAINING_ENTITY, ""),
-            ): str,
-            vol.Optional(
-                FORM_SOURCE_INFLUENCE,
-                default=defaults.get(FORM_SOURCE_INFLUENCE, DEFAULT_WEIGHT * DEFAULT_CONFIDENCE),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0.0,
-                    max=2.0,
-                    step=0.05,
-                    mode=selector.NumberSelectorMode.SLIDER,
-                )
-            ),
-            vol.Optional(
-                FORM_SOURCE_ADJUSTMENT_PERCENT,
-                default=defaults.get(FORM_SOURCE_ADJUSTMENT_PERCENT, 0.0),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=-100.0,
-                    max=100.0,
-                    step=1.0,
-                    mode=selector.NumberSelectorMode.SLIDER,
-                    unit_of_measurement="%",
-                )
-            ),
-        }
+    schema: dict[Any, Any] = {
+        vol.Optional(FORM_SOURCE_NAME, default=defaults.get(FORM_SOURCE_NAME, "")): str,
+        vol.Optional(
+            FORM_SOURCE_TYPE,
+            default=defaults.get(FORM_SOURCE_TYPE, DEFAULT_SOURCE_TYPE),
+        ): vol.In(SOURCE_TYPE_OPTIONS),
+        vol.Required(
+            FORM_SOURCE_TODAY_ENTITY,
+            default=defaults.get(FORM_SOURCE_TODAY_ENTITY, []),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="sensor",
+                multiple=True,
+            )
+        ),
+        vol.Optional(
+            FORM_SOURCE_TOMORROW_ENTITY,
+            default=defaults.get(FORM_SOURCE_TOMORROW_ENTITY, []),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="sensor",
+                multiple=True,
+            )
+        ),
+        vol.Optional(
+            FORM_SOURCE_TOMORROW_ENTITY_CSV,
+            default=defaults.get(FORM_SOURCE_TOMORROW_ENTITY_CSV, ""),
+        ): str,
+        vol.Optional(
+            FORM_SOURCE_REMAINING_ENTITY,
+            default=defaults.get(FORM_SOURCE_REMAINING_ENTITY, []),
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="sensor",
+                multiple=True,
+            )
+        ),
+        vol.Optional(
+            FORM_SOURCE_REMAINING_ENTITY_CSV,
+            default=defaults.get(FORM_SOURCE_REMAINING_ENTITY_CSV, ""),
+        ): str,
+    }
+
+    schema[
+        vol.Optional(
+            FORM_SOURCE_INFLUENCE,
+            default=defaults.get(FORM_SOURCE_INFLUENCE, DEFAULT_WEIGHT * DEFAULT_CONFIDENCE),
+        )
+    ] = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0.0,
+            max=2.0,
+            step=0.05,
+            mode=selector.NumberSelectorMode.SLIDER,
+        )
     )
+    schema[
+        vol.Optional(
+            FORM_SOURCE_ADJUSTMENT_PERCENT,
+            default=defaults.get(FORM_SOURCE_ADJUSTMENT_PERCENT, 0.0),
+        )
+    ] = selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=-100.0,
+            max=100.0,
+            step=1.0,
+            mode=selector.NumberSelectorMode.SLIDER,
+            unit_of_measurement="%",
+        )
+    )
+
+    return vol.Schema(schema)
 
 
 class PvForecastFusionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -239,9 +269,15 @@ def _source_form_defaults_from_config(
     return {
         FORM_SOURCE_NAME: config_data.get(fields.name_key, ""),
         FORM_SOURCE_TYPE: config_data.get(fields.type_key, DEFAULT_SOURCE_TYPE),
-        FORM_SOURCE_TODAY_ENTITY: config_data.get(fields.today_key, ""),
-        FORM_SOURCE_TOMORROW_ENTITY: config_data.get(fields.tomorrow_key, ""),
-        FORM_SOURCE_REMAINING_ENTITY: config_data.get(fields.remaining_key, ""),
+        FORM_SOURCE_TODAY_ENTITY: _csv_to_entity_selector_value(config_data.get(fields.today_key)),
+        FORM_SOURCE_TOMORROW_ENTITY: _csv_to_entity_selector_value(config_data.get(fields.tomorrow_key)),
+        FORM_SOURCE_REMAINING_ENTITY: _csv_to_entity_selector_value(config_data.get(fields.remaining_key)),
+        FORM_SOURCE_TOMORROW_ENTITY_CSV: _csv_with_inner_placeholders_or_empty(
+            config_data.get(fields.tomorrow_key)
+        ),
+        FORM_SOURCE_REMAINING_ENTITY_CSV: _csv_with_inner_placeholders_or_empty(
+            config_data.get(fields.remaining_key)
+        ),
         FORM_SOURCE_INFLUENCE: weight * confidence,
         FORM_SOURCE_ADJUSTMENT_PERCENT: _bias_factor_to_adjustment_percent(bias_factor),
     }
@@ -262,9 +298,15 @@ def _map_source_form_to_config(
     return {
         fields.name_key: str(user_input.get(FORM_SOURCE_NAME, "")).strip(),
         fields.type_key: user_input.get(FORM_SOURCE_TYPE, DEFAULT_SOURCE_TYPE),
-        fields.today_key: str(user_input.get(FORM_SOURCE_TODAY_ENTITY, "")).strip(),
-        fields.tomorrow_key: str(user_input.get(FORM_SOURCE_TOMORROW_ENTITY, "")).strip(),
-        fields.remaining_key: str(user_input.get(FORM_SOURCE_REMAINING_ENTITY, "")).strip(),
+        fields.today_key: _selector_value_to_entity_csv(user_input.get(FORM_SOURCE_TODAY_ENTITY)),
+        fields.tomorrow_key: _csv_override_or_selector_value(
+            user_input.get(FORM_SOURCE_TOMORROW_ENTITY_CSV),
+            user_input.get(FORM_SOURCE_TOMORROW_ENTITY),
+        ),
+        fields.remaining_key: _csv_override_or_selector_value(
+            user_input.get(FORM_SOURCE_REMAINING_ENTITY_CSV),
+            user_input.get(FORM_SOURCE_REMAINING_ENTITY),
+        ),
         fields.weight_key: influence,
         fields.bias_key: _adjustment_percent_to_bias_factor(adjustment_percent),
         fields.confidence_key: 1.0,
@@ -330,3 +372,30 @@ def _join_entity_ids(values: Iterable[str]) -> str:
     while parts and not parts[-1]:
         parts.pop()
     return ", ".join(parts)
+
+
+def _csv_to_entity_selector_value(value: Any) -> list[str]:
+    return [item.strip() for item in str(value or "").split(",") if item.strip()]
+
+
+def _selector_value_to_entity_csv(value: Any) -> str:
+    if isinstance(value, list):
+        return ", ".join(str(item).strip() for item in value if str(item).strip())
+    return str(value or "").strip()
+
+
+def _csv_override_or_selector_value(csv_override: Any, selector_value: Any) -> str:
+    override = str(csv_override or "").strip()
+    if override:
+        return override
+    return _selector_value_to_entity_csv(selector_value)
+
+
+def _csv_with_inner_placeholders_or_empty(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    parts = [item.strip() for item in raw.split(",")]
+    if any(not item for item in parts[:-1]):
+        return raw
+    return ""

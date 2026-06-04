@@ -23,16 +23,20 @@
           "source_type": "Quellentyp",
           "source_today_entity": "Heute-Entität",
           "source_tomorrow_entity": "Morgen-Entität",
+          "source_tomorrow_entity_csv": "Morgen-Entität (erweiterter CSV-Override)",
           "source_remaining_entity": "Rest-heute-Entität",
+          "source_remaining_entity_csv": "Rest-heute-Entität (erweiterter CSV-Override)",
           "source_influence": "Einfluss",
           "source_adjustment_percent": "Anpassung (%)"
         },
         "data_description": {
           "source_name": "Optionales Label für Diagnosen und die Erklärung der fusionierten Quellen.",
           "source_type": "In den meisten Fällen auto verwenden. Einen Providertyp nur erzwingen, wenn die Preset-Erkennung die Zuordnung falsch erkennt.",
-          "source_today_entity": "Erforderlich. Du kannst eine kommagetrennte Liste eintragen, wenn diese Quelle mehrere Arrays oder Sensoren umfasst.",
-          "source_tomorrow_entity": "Optional. Leer lassen, damit Provider-Presets nach Möglichkeit eine passende Morgen-Entität ableiten können.",
-          "source_remaining_entity": "Optional. Leer lassen, damit eine Rest-heute-Entität oder ein Wert aus den Attributen der Heute-Entität abgeleitet werden kann, wenn der Provider das unterstützt.",
+          "source_today_entity": "Erforderlich. Wähle eine oder mehrere Sensor-Entitäten über den Entity Picker aus. Mehrere gewählte Sensoren werden intern als Quellgruppe gespeichert.",
+          "source_tomorrow_entity": "Optional. Wähle eine passende Morgen-Entität, wenn du die Auto-Erkennung überschreiben möchtest.",
+          "source_tomorrow_entity_csv": "Nur für fortgeschrittene Mehrfach-Mappings mit absichtlichen Lücken nötig. Beispiel: sensor.a_tomorrow, , sensor.c_tomorrow",
+          "source_remaining_entity": "Optional. Wähle eine passende Rest-heute-Entität, wenn du die Auto-Erkennung überschreiben möchtest.",
+          "source_remaining_entity_csv": "Nur für fortgeschrittene Mehrfach-Mappings mit absichtlichen Lücken nötig. Beispiel: sensor.a_remaining, , sensor.c_remaining",
           "source_influence": "Wie stark diese Quelle das Fusionsergebnis beeinflussen soll. Slider-Bereich: 0 bis 2. Ersetzt die bisherigen getrennten Werte Gewicht und Konfidenz.",
           "source_adjustment_percent": "Manuelle Korrektur in Prozent. Slider-Bereich: -100 % bis +100 %. Beispiel: -10 senkt diese Quelle um 10 %, +15 erhöht sie um 15 %."
         }
@@ -45,16 +49,20 @@
           "source_type": "Quellentyp",
           "source_today_entity": "Heute-Entität",
           "source_tomorrow_entity": "Morgen-Entität",
+          "source_tomorrow_entity_csv": "Morgen-Entität (erweiterter CSV-Override)",
           "source_remaining_entity": "Rest-heute-Entität",
+          "source_remaining_entity_csv": "Rest-heute-Entität (erweiterter CSV-Override)",
           "source_influence": "Einfluss",
           "source_adjustment_percent": "Anpassung (%)"
         },
         "data_description": {
           "source_name": "Optionales Label für Diagnosen und die Erklärung der fusionierten Quellen.",
           "source_type": "In den meisten Fällen auto verwenden. Einen Providertyp nur erzwingen, wenn die Preset-Erkennung die Zuordnung falsch erkennt.",
-          "source_today_entity": "Erforderlich. Du kannst eine kommagetrennte Liste eintragen, wenn diese Quelle mehrere Arrays oder Sensoren umfasst.",
-          "source_tomorrow_entity": "Optional. Leer lassen, damit Provider-Presets nach Möglichkeit eine passende Morgen-Entität ableiten können.",
-          "source_remaining_entity": "Optional. Leer lassen, damit eine Rest-heute-Entität oder ein Wert aus den Attributen der Heute-Entität abgeleitet werden kann, wenn der Provider das unterstützt.",
+          "source_today_entity": "Erforderlich. Wähle eine oder mehrere Sensor-Entitäten über den Entity Picker aus. Mehrere gewählte Sensoren werden intern als Quellgruppe gespeichert.",
+          "source_tomorrow_entity": "Optional. Wähle eine passende Morgen-Entität, wenn du die Auto-Erkennung überschreiben möchtest.",
+          "source_tomorrow_entity_csv": "Nur für fortgeschrittene Mehrfach-Mappings mit absichtlichen Lücken nötig. Beispiel: sensor.a_tomorrow, , sensor.c_tomorrow",
+          "source_remaining_entity": "Optional. Wähle eine passende Rest-heute-Entität, wenn du die Auto-Erkennung überschreiben möchtest.",
+          "source_remaining_entity_csv": "Nur für fortgeschrittene Mehrfach-Mappings mit absichtlichen Lücken nötig. Beispiel: sensor.a_remaining, , sensor.c_remaining",
           "source_influence": "Wie stark diese Quelle das Fusionsergebnis beeinflussen soll. Slider-Bereich: 0 bis 2. Ersetzt die bisherigen getrennten Werte Gewicht und Konfidenz.",
           "source_adjustment_percent": "Manuelle Korrektur in Prozent. Slider-Bereich: -100 % bis +100 %. Beispiel: -10 senkt diese Quelle um 10 %, +15 erhöht sie um 15 %."
         }
@@ -67,16 +75,20 @@
           "source_type": "Quellentyp",
           "source_today_entity": "Heute-Entität",
           "source_tomorrow_entity": "Morgen-Entität",
+          "source_tomorrow_entity_csv": "Morgen-Entität (erweiterter CSV-Override)",
           "source_remaining_entity": "Rest-heute-Entität",
+          "source_remaining_entity_csv": "Rest-heute-Entität (erweiterter CSV-Override)",
           "source_influence": "Einfluss",
           "source_adjustment_percent": "Anpassung (%)"
         },
         "data_description": {
           "source_name": "Optionales Label für Diagnosen und die Erklärung der fusionierten Quellen.",
           "source_type": "In den meisten Fällen auto verwenden. Einen Providertyp nur erzwingen, wenn die Preset-Erkennung die Zuordnung falsch erkennt.",
-          "source_today_entity": "Erforderlich. Du kannst eine kommagetrennte Liste eintragen, wenn diese Quelle mehrere Arrays oder Sensoren umfasst.",
-          "source_tomorrow_entity": "Optional. Leer lassen, damit Provider-Presets nach Möglichkeit eine passende Morgen-Entität ableiten können.",
-          "source_remaining_entity": "Optional. Leer lassen, damit eine Rest-heute-Entität oder ein Wert aus den Attributen der Heute-Entität abgeleitet werden kann, wenn der Provider das unterstützt.",
+          "source_today_entity": "Erforderlich. Wähle eine oder mehrere Sensor-Entitäten über den Entity Picker aus. Mehrere gewählte Sensoren werden intern als Quellgruppe gespeichert.",
+          "source_tomorrow_entity": "Optional. Wähle eine passende Morgen-Entität, wenn du die Auto-Erkennung überschreiben möchtest.",
+          "source_tomorrow_entity_csv": "Nur für fortgeschrittene Mehrfach-Mappings mit absichtlichen Lücken nötig. Beispiel: sensor.a_tomorrow, , sensor.c_tomorrow",
+          "source_remaining_entity": "Optional. Wähle eine passende Rest-heute-Entität, wenn du die Auto-Erkennung überschreiben möchtest.",
+          "source_remaining_entity_csv": "Nur für fortgeschrittene Mehrfach-Mappings mit absichtlichen Lücken nötig. Beispiel: sensor.a_remaining, , sensor.c_remaining",
           "source_influence": "Wie stark diese Quelle das Fusionsergebnis beeinflussen soll. Slider-Bereich: 0 bis 2. Ersetzt die bisherigen getrennten Werte Gewicht und Konfidenz.",
           "source_adjustment_percent": "Manuelle Korrektur in Prozent. Slider-Bereich: -100 % bis +100 %. Beispiel: -10 senkt diese Quelle um 10 %, +15 erhöht sie um 15 %."
         }

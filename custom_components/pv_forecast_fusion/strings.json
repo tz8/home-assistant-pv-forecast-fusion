@@ -23,16 +23,20 @@
           "source_type": "Source type",
           "source_today_entity": "Today entity",
           "source_tomorrow_entity": "Tomorrow entity",
+          "source_tomorrow_entity_csv": "Tomorrow entity (advanced CSV override)",
           "source_remaining_entity": "Remaining-today entity",
+          "source_remaining_entity_csv": "Remaining-today entity (advanced CSV override)",
           "source_influence": "Influence",
           "source_adjustment_percent": "Adjustment (%)"
         },
         "data_description": {
           "source_name": "Optional label used in diagnostics and fused-source explanations.",
           "source_type": "Use auto in most cases. Force a provider type only when preset detection picks the wrong mapping.",
-          "source_today_entity": "Required. You can enter a comma-separated list when this source spans multiple arrays or sensors.",
-          "source_tomorrow_entity": "Optional. Leave empty to let provider presets infer a matching tomorrow entity when possible.",
-          "source_remaining_entity": "Optional. Leave empty to infer a remaining-today entity or derive it from today-entity attributes when supported.",
+          "source_today_entity": "Required. Pick one or more sensor entities with the entity picker. Multiple selected sensors are stored internally as a source group.",
+          "source_tomorrow_entity": "Optional. Pick a matching tomorrow entity when you want to override auto-detection.",
+          "source_tomorrow_entity_csv": "Only needed for advanced multi-array mappings with intentional gaps. Example: sensor.a_tomorrow, , sensor.c_tomorrow",
+          "source_remaining_entity": "Optional. Pick a matching remaining-today entity when you want to override auto-detection.",
+          "source_remaining_entity_csv": "Only needed for advanced multi-array mappings with intentional gaps. Example: sensor.a_remaining, , sensor.c_remaining",
           "source_influence": "How strongly this source should affect the fused result. Slider range: 0 to 2. It replaces the old separate weight and confidence values.",
           "source_adjustment_percent": "Manual correction in percent. Slider range: -100% to +100%. Example: -10 lowers this source by 10%, +15 raises it by 15%."
         }
@@ -45,16 +49,20 @@
           "source_type": "Source type",
           "source_today_entity": "Today entity",
           "source_tomorrow_entity": "Tomorrow entity",
+          "source_tomorrow_entity_csv": "Tomorrow entity (advanced CSV override)",
           "source_remaining_entity": "Remaining-today entity",
+          "source_remaining_entity_csv": "Remaining-today entity (advanced CSV override)",
           "source_influence": "Influence",
           "source_adjustment_percent": "Adjustment (%)"
         },
         "data_description": {
           "source_name": "Optional label used in diagnostics and fused-source explanations.",
           "source_type": "Use auto in most cases. Force a provider type only when preset detection picks the wrong mapping.",
-          "source_today_entity": "Required. You can enter a comma-separated list when this source spans multiple arrays or sensors.",
-          "source_tomorrow_entity": "Optional. Leave empty to let provider presets infer a matching tomorrow entity when possible.",
-          "source_remaining_entity": "Optional. Leave empty to infer a remaining-today entity or derive it from today-entity attributes when supported.",
+          "source_today_entity": "Required. Pick one or more sensor entities with the entity picker. Multiple selected sensors are stored internally as a source group.",
+          "source_tomorrow_entity": "Optional. Pick a matching tomorrow entity when you want to override auto-detection.",
+          "source_tomorrow_entity_csv": "Only needed for advanced multi-array mappings with intentional gaps. Example: sensor.a_tomorrow, , sensor.c_tomorrow",
+          "source_remaining_entity": "Optional. Pick a matching remaining-today entity when you want to override auto-detection.",
+          "source_remaining_entity_csv": "Only needed for advanced multi-array mappings with intentional gaps. Example: sensor.a_remaining, , sensor.c_remaining",
           "source_influence": "How strongly this source should affect the fused result. Slider range: 0 to 2. It replaces the old separate weight and confidence values.",
           "source_adjustment_percent": "Manual correction in percent. Slider range: -100% to +100%. Example: -10 lowers this source by 10%, +15 raises it by 15%."
         }
@@ -67,16 +75,20 @@
           "source_type": "Source type",
           "source_today_entity": "Today entity",
           "source_tomorrow_entity": "Tomorrow entity",
+          "source_tomorrow_entity_csv": "Tomorrow entity (advanced CSV override)",
           "source_remaining_entity": "Remaining-today entity",
+          "source_remaining_entity_csv": "Remaining-today entity (advanced CSV override)",
           "source_influence": "Influence",
           "source_adjustment_percent": "Adjustment (%)"
         },
         "data_description": {
           "source_name": "Optional label used in diagnostics and fused-source explanations.",
           "source_type": "Use auto in most cases. Force a provider type only when preset detection picks the wrong mapping.",
-          "source_today_entity": "Required. You can enter a comma-separated list when this source spans multiple arrays or sensors.",
-          "source_tomorrow_entity": "Optional. Leave empty to let provider presets infer a matching tomorrow entity when possible.",
-          "source_remaining_entity": "Optional. Leave empty to infer a remaining-today entity or derive it from today-entity attributes when supported.",
+          "source_today_entity": "Required. Pick one or more sensor entities with the entity picker. Multiple selected sensors are stored internally as a source group.",
+          "source_tomorrow_entity": "Optional. Pick a matching tomorrow entity when you want to override auto-detection.",
+          "source_tomorrow_entity_csv": "Only needed for advanced multi-array mappings with intentional gaps. Example: sensor.a_tomorrow, , sensor.c_tomorrow",
+          "source_remaining_entity": "Optional. Pick a matching remaining-today entity when you want to override auto-detection.",
+          "source_remaining_entity_csv": "Only needed for advanced multi-array mappings with intentional gaps. Example: sensor.a_remaining, , sensor.c_remaining",
           "source_influence": "How strongly this source should affect the fused result. Slider range: 0 to 2. It replaces the old separate weight and confidence values.",
           "source_adjustment_percent": "Manual correction in percent. Slider range: -100% to +100%. Example: -10 lowers this source by 10%, +15 raises it by 15%."
         }
