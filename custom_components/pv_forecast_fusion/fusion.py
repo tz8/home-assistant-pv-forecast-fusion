@@ -3,7 +3,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Iterable, Sequence
+
+
+@dataclass(slots=True)
+class HourlyForecastPoint:
+    period_start: datetime
+    energy_kwh: float
+
+
+@dataclass(slots=True)
+class FusedHourlyForecastPoint:
+    period_start: datetime
+    energy_kwh: float
+    contributing_sources: list[str]
+    effective_weights: dict[str, float]
 
 
 @dataclass(slots=True)
@@ -16,6 +31,8 @@ class ForecastSource:
     bias_factor: float = 1.0
     confidence: float = 1.0
     curve_values: list[float] | None = None
+    hourly_today: list[HourlyForecastPoint] | None = None
+    hourly_tomorrow: list[HourlyForecastPoint] | None = None
 
     @property
     def effective_weight(self) -> float:
@@ -37,6 +54,7 @@ class FusionResult:
     weather_pattern: str
     active_source_names: list[str]
     metric_details: dict[str, FusionMetricDetails]
+    hourly_details: dict[str, list[FusedHourlyForecastPoint]]
 
 
 def fuse_sources(sources: Iterable[ForecastSource]) -> FusionResult:
@@ -67,6 +85,10 @@ def fuse_sources(sources: Iterable[ForecastSource]) -> FusionResult:
             "today_kwh": today,
             "tomorrow_kwh": tomorrow,
             "remaining_today_kwh": remaining,
+        },
+        hourly_details={
+            "today_kwh": _fuse_hourly_metric(source_list, "hourly_today"),
+            "tomorrow_kwh": _fuse_hourly_metric(source_list, "hourly_tomorrow"),
         },
     )
 
@@ -103,6 +125,53 @@ def _best_curve(sources: Sequence[ForecastSource]) -> list[float]:
         return []
     curves.sort(key=len, reverse=True)
     return [float(v) for v in curves[0] if isinstance(v, (int, float))]
+
+
+def _fuse_hourly_metric(
+    sources: Sequence[ForecastSource],
+    field_name: str,
+) -> list[FusedHourlyForecastPoint]:
+    buckets: dict[datetime, dict[str, object]] = {}
+
+    for source in sources:
+        points = getattr(source, field_name) or []
+        effective_weight = source.effective_weight
+        if effective_weight <= 0:
+            continue
+
+        for point in points:
+            bucket = buckets.setdefault(
+                point.period_start,
+                {
+                    "numerator": 0.0,
+                    "denominator": 0.0,
+                    "contributing_sources": [],
+                    "effective_weights": {},
+                },
+            )
+            bucket["numerator"] = float(bucket["numerator"]) + (
+                float(point.energy_kwh) * float(source.bias_factor) * effective_weight
+            )
+            bucket["denominator"] = float(bucket["denominator"]) + effective_weight
+            bucket["contributing_sources"].append(source.name)
+            bucket["effective_weights"][source.name] = effective_weight
+
+    fused_points: list[FusedHourlyForecastPoint] = []
+    for period_start in sorted(buckets):
+        bucket = buckets[period_start]
+        denominator = float(bucket["denominator"])
+        if denominator <= 0:
+            continue
+        fused_points.append(
+            FusedHourlyForecastPoint(
+                period_start=period_start,
+                energy_kwh=float(bucket["numerator"]) / denominator,
+                contributing_sources=list(bucket["contributing_sources"]),
+                effective_weights=dict(bucket["effective_weights"]),
+            )
+        )
+
+    return fused_points
 
 
 def classify_weather_pattern(curve_values: Sequence[float]) -> str:

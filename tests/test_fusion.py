@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from pytest import approx
 
-from custom_components.pv_forecast_fusion.fusion import ForecastSource, classify_weather_pattern, fuse_sources
+from custom_components.pv_forecast_fusion.fusion import ForecastSource, HourlyForecastPoint, classify_weather_pattern, fuse_sources
 
 
 def test_fuse_sources_combines_bias_weight_and_confidence():
@@ -40,3 +42,42 @@ def test_classify_weather_pattern_detects_sunny_curve():
 def test_classify_weather_pattern_detects_variable_curve():
     curve = [0, 100, 450, 200, 900, 300, 1200, 400, 950, 250, 500, 80, 0]
     assert classify_weather_pattern(curve) == "variable"
+
+
+def test_fuse_sources_combines_hourly_forecast_points_per_timestamp():
+    sources = [
+        ForecastSource(
+            name="open_meteo",
+            weight=1.0,
+            bias_factor=1.0,
+            confidence=1.0,
+            hourly_today=[
+                HourlyForecastPoint(period_start=datetime.fromisoformat("2026-06-03T09:00:00+02:00"), energy_kwh=1.0),
+                HourlyForecastPoint(period_start=datetime.fromisoformat("2026-06-03T10:00:00+02:00"), energy_kwh=2.0),
+            ],
+        ),
+        ForecastSource(
+            name="solcast",
+            weight=2.0,
+            bias_factor=0.5,
+            confidence=1.0,
+            hourly_today=[
+                HourlyForecastPoint(period_start=datetime.fromisoformat("2026-06-03T09:00:00+02:00"), energy_kwh=4.0),
+                HourlyForecastPoint(period_start=datetime.fromisoformat("2026-06-03T11:00:00+02:00"), energy_kwh=6.0),
+            ],
+        ),
+    ]
+
+    result = fuse_sources(sources)
+
+    assert set(result.hourly_details) == {"today_kwh", "tomorrow_kwh"}
+    assert [(point.period_start.isoformat(), point.energy_kwh) for point in result.hourly_details["today_kwh"]] == [
+        ("2026-06-03T09:00:00+02:00", approx((1.0 * 1.0 * 1.0 + 4.0 * 0.5 * 2.0) / 3.0)),
+        ("2026-06-03T10:00:00+02:00", approx(2.0)),
+        ("2026-06-03T11:00:00+02:00", approx(3.0)),
+    ]
+    assert result.hourly_details["today_kwh"][0].contributing_sources == ["open_meteo", "solcast"]
+    assert result.hourly_details["today_kwh"][0].effective_weights == {
+        "open_meteo": 1.0,
+        "solcast": 2.0,
+    }

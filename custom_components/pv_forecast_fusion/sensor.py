@@ -12,6 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .attributes import build_hourly_forecast_attribute
 from .const import DOMAIN
 from .coordinator import PvForecastFusionCoordinator
 
@@ -93,6 +94,9 @@ class PvForecastFusionSensor(PvForecastFusionBaseEntity):
         if metric_details is not None:
             attrs["contributing_sources"] = metric_details.contributing_sources
             attrs["effective_weights"] = metric_details.effective_weights
+        hourly_forecast = build_hourly_forecast_attribute(self._metric_key, result)
+        if hourly_forecast is not None:
+            attrs["hourly_forecast"] = hourly_forecast
         attrs["weather_pattern"] = getattr(result, "weather_pattern", "unknown")
         return attrs
 

@@ -13,9 +13,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN, SOURCE_SLOTS
-from .fusion import ForecastSource, fuse_sources
+from .fusion import ForecastSource, HourlyForecastPoint, fuse_sources
 from .source_entity_groups import aggregate_curve_values, aggregate_numeric_values, expand_entity_group
-from .source_parser import extract_curve_values
+from .source_parser import extract_curve_values, extract_hourly_energy_forecast
 from .source_presets import derive_remaining_from_attributes
 
 
@@ -118,6 +118,8 @@ def _build_source_from_entry(
     remaining_values: list[float | None] = []
     remaining_methods: list[str] = []
     curves: list[list[float]] = []
+    today_hourly_points: list[list[HourlyForecastPoint]] = []
+    tomorrow_hourly_points: list[list[HourlyForecastPoint]] = []
 
     now = datetime.now(timezone.utc)
     for resolved in resolved_group.items:
@@ -145,11 +147,17 @@ def _build_source_from_entry(
         remaining_values.append(remaining_today_kwh)
         remaining_methods.append(remaining_method or "unavailable")
         curves.append(extract_curve_values(today_state.attributes if today_state else None))
+        today_hourly_points.append(extract_hourly_energy_forecast(today_state.attributes if today_state else None))
+        tomorrow_hourly_points.append(
+            extract_hourly_energy_forecast(tomorrow_state.attributes if tomorrow_state else None)
+        )
 
     today_kwh = aggregate_numeric_values(today_values)
     tomorrow_kwh = aggregate_numeric_values(tomorrow_values)
     remaining_today_kwh = aggregate_numeric_values(remaining_values)
     curve_values = aggregate_curve_values(curves)
+    today_hourly = _aggregate_hourly_points(today_hourly_points)
+    tomorrow_hourly = _aggregate_hourly_points(tomorrow_hourly_points)
 
     source = ForecastSource(
         name=name,
@@ -160,6 +168,8 @@ def _build_source_from_entry(
         bias_factor=bias_factor,
         confidence=confidence,
         curve_values=curve_values,
+        hourly_today=today_hourly,
+        hourly_tomorrow=tomorrow_hourly,
     )
     snapshot = SourceSnapshot(
         name=name,
@@ -230,3 +240,14 @@ def _float_or_default(value: Any, default: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _aggregate_hourly_points(grouped_points: list[list[HourlyForecastPoint]]) -> list[HourlyForecastPoint]:
+    buckets: dict[datetime, float] = {}
+    for points in grouped_points:
+        for point in points:
+            buckets[point.period_start] = buckets.get(point.period_start, 0.0) + point.energy_kwh
+    return [
+        HourlyForecastPoint(period_start=period_start, energy_kwh=energy_kwh)
+        for period_start, energy_kwh in sorted(buckets.items())
+    ]
